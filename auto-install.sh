@@ -71,7 +71,7 @@ cd "$BASE_DIR"
 # --- Dependências Python ---
 if [ -f "$BASE_DIR/dispatcher/requirements.txt" ]; then
     info "Instalando bibliotecas Python..."
-    pip3 install --break-system-packages -r "$BASE_DIR/dispatcher/requirements.txt"
+    python3 install --break-system-packages -r "$BASE_DIR/dispatcher/requirements.txt"
 fi
 
 # --- Mosquitto ---
