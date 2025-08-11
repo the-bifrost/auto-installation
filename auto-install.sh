@@ -152,7 +152,7 @@ After=network.target
 [Service]
 User=$USER
 WorkingDirectory=$BASE_DIR/dispatcher
-ExecStart=/usr/bin/python3 $BASE_DIR/dispatcher/main.py
+ExecStart=/usr/bin/python3 main.py
 Restart=always
 
 [Install]
