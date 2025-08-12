@@ -193,4 +193,6 @@ info "Subindo containers..."
 (cd "$DOCKER_DIR/mqtt-broker" && sudo docker compose up -d)
 (cd "$DOCKER_DIR/mqtt-explorer" && sudo docker compose up -d)
 
-ok "Instalação concluída! Reinicie para aplicar mudanças na UART."
+ok "Instalação concluída!"
+info "Reiniciando o sistema...."
+sudo reboot
