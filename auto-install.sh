@@ -125,6 +125,108 @@ EOF
 else
     ok "Configuração do MQTT Explorer já existe."
 fi
+# --- Monitoring (Grafana, Prometheus, Node Exporter) ---
+MONITORING_DIR="$DOCKER_DIR/monitoring"
+GRAFANA_DIR="$MONITORING_DIR/grafana"
+PROMETHEUS_DIR="$MONITORING_DIR/prometheus"
+
+if [ ! -f "$MONITORING_DIR/compose.yaml" ]; then
+    info "Criando estrutura de monitoring..."
+    mkdir -p "$GRAFANA_DIR" "$PROMETHEUS_DIR"
+
+    # compose.yaml
+    cat <<'EOF' > "$MONITORING_DIR/compose.yaml"
+services:
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - 9100:9100
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
+
+volumes:
+  prom_data:
+EOF
+
+    # datasource.yaml
+    cat <<'EOF' > "$GRAFANA_DIR/datasource.yaml"
+apiVersion: 1
+
+datasources:
+- name: Prometheus
+  type: prometheus
+  url: http://prometheus:9090 
+  isDefault: true
+  access: proxy
+  editable: true
+EOF
+
+    # prometheus.yaml
+    cat <<'EOF' > "$PROMETHEUS_DIR/prometheus.yaml"
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets: []
+    scheme: http
+    timeout: 10s
+    api_version: v2
+scrape_configs:
+  - job_name: prometheus
+    honor_timestamps: true
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+    - targets:
+      - localhost:9090
+  - job_name: node
+    static_configs:
+    - targets:
+      - host.docker.internal:9100
+EOF
+else
+    ok "Configuração de monitoring já existe."
+fi
 
 # --- UARTs ---
 UARTS=(
