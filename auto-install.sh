@@ -292,6 +292,7 @@ fi
 
 # --- Subindo containers ---
 info "Subindo containers..."
+(cd "$MONITORING_DIR" && sudo docker compose up -d)
 (cd "$DOCKER_DIR/mqtt-broker" && sudo docker compose up -d)
 (cd "$DOCKER_DIR/mqtt-explorer" && sudo docker compose up -d)
 
