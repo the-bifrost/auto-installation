@@ -228,6 +228,94 @@ else
     ok "Configuração de monitoring já existe."
 fi
 
+# --- Monitoring Script (MQTT Publisher) ---
+MONITORING_PY="$MONITORING_DIR/monitoring.py"
+if [ ! -f "$MONITORING_PY" ]; then
+    info "Criando script de monitoring MQTT..."
+    cat <<'EOF' > "$MONITORING_PY"
+import paho.mqtt.client as mqtt
+import psutil
+import time
+import os
+
+# Configuração do MQTT
+MQTT_BROKER = "localhost"
+MQTT_PORT = 1883
+MQTT_BASE_TOPIC = "/monitoring/"
+
+def get_cpu_temp():
+    try:
+        res = os.popen("vcgencmd measure_temp").readline()
+        temp_str = res.replace("temp=", "").replace("'C\n", "")
+        return float(temp_str)
+    except:
+        return None
+
+def get_uptime():
+    uptime_seconds = time.time() - psutil.boot_time()
+    days = int(uptime_seconds // 86400)
+    hours = int((uptime_seconds % 86400) // 3600)
+    minutes = int((uptime_seconds % 3600) // 60)
+    return f"{days}d {hours}h {minutes}m"
+
+client = mqtt.Client()
+client.connect(MQTT_BROKER, MQTT_PORT, 60)
+
+print("📡 Publicando dados do Raspberry Pi em tópicos MQTT separados...")
+
+try:
+    while True:
+        cpu_temp = get_cpu_temp()
+        cpu_usage = psutil.cpu_percent(interval=1)
+        ram_usage = psutil.virtual_memory().percent
+        uptime = get_uptime()
+
+        client.publish(MQTT_BASE_TOPIC + "cpu_temp", cpu_temp)
+        client.publish(MQTT_BASE_TOPIC + "cpu_usage", cpu_usage)
+        client.publish(MQTT_BASE_TOPIC + "ram_usage", ram_usage)
+        client.publish(MQTT_BASE_TOPIC + "uptime", uptime)
+
+        print(f"cpu_temp → {cpu_temp} °C")
+        print(f"cpu_usage → {cpu_usage} %")
+        print(f"ram_usage → {ram_usage} %")
+        print(f"uptime → {uptime}")
+        print("-" * 40)
+
+        time.sleep(1)
+
+except KeyboardInterrupt:
+    print("\n🛑 Encerrando...")
+    client.disconnect()
+EOF
+else
+    ok "Script de monitoring já existe."
+fi
+
+# --- Service do Monitoring ---
+SERVICE_FILE="/etc/systemd/system/monitoring.service"
+if [ ! -f "$SERVICE_FILE" ]; then
+    info "Criando serviço systemd para o Monitoring..."
+    sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+[Unit]
+Description=Monitoring Service
+After=network.target mosquitto.service
+
+[Service]
+User=$USER
+WorkingDirectory=$MONITORING_DIR
+ExecStart=/usr/bin/python3 monitoring.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl enable monitoring
+    sudo systemctl start monitoring
+else
+    ok "Serviço monitoring já existe."
+fi
+
 # --- UARTs ---
 UARTS=(
     "enable_uart=1"
