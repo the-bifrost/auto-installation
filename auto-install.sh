@@ -65,9 +65,9 @@ else
 fi
 
 # --- Estrutura de pastas ---
-BASE_DIR="$USER/bifrost"
+BASE_DIR="$HOME/bifrost"
 DOCKER_DIR="$BASE_DIR/docker"
-mkdir -p "$DOCKER_DIR/mqtt-broker" "$DOCKER_DIR/mqtt-explorer"
+sudo mkdir -p "$DOCKER_DIR/mqtt-broker" "$DOCKER_DIR/mqtt-explorer"
 
 # --- Clonando repositórios ---
 cd "$BASE_DIR"
