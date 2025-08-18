@@ -128,10 +128,11 @@ fi
 # --- Monitoring (Grafana, InfluxDB) ---
 MONITORING_DIR="$DOCKER_DIR/monitoring"
 GRAFANA_DIR="$MONITORING_DIR/grafana"
+PROMETHEUS_DIR="$MONITORING_DIR/prometheus"
 
 if [ ! -f "$MONITORING_DIR/compose.yaml" ]; then
     info "Criando estrutura de monitoring..."
-
+    mkdir -p "$GRAFANA_DIR" "$PROMETHEUS_DIR"
     # compose.yaml
     cat <<'EOF' > "$MONITORING_DIR/compose.yaml"
 services:
@@ -147,7 +148,20 @@ services:
       - GF_INSTALL_PLUGINS=grafana-mqtt-datasource
     volumes:
       - ./grafana:/etc/grafana/provisioning/datasources
-
+      
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 volumes:
   prom_data:
 EOF
@@ -165,7 +179,41 @@ datasources:
       broker: "mqtt://mosquitto:1883"
       username: ""
       password: ""
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090 
+    isDefault: true
+    access: proxy
+    editable: true
 EOF
+
+# prometheus.yaml
+    cat <<'EOF' > "$PROMETHEUS_DIR/prometheus.yaml"
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets: []
+    scheme: http
+    timeout: 10s
+    api_version: v2
+scrape_configs:
+  - job_name: prometheus
+    honor_timestamps: true
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+    - targets:
+      - localhost:9090
+  - job_name: node
+    static_configs:
+    - targets:
+      - host.docker.internal:9100
 else
     ok "Configuração de monitoring já existe."
 fi
