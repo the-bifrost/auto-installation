@@ -318,8 +318,8 @@ Restart=always
 WantedBy=multi-user.target
 EOF
     sudo systemctl daemon-reload
-    sudo systemctl enable monitoring
-    sudo systemctl start monitoring
+    sudo systemctl enable monitoring.service
+    sudo systemctl start monitoring.service
 else
     ok "Serviço monitoring já existe."
 fi
