@@ -176,7 +176,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=grafana
-      - GF_INSTALL_PLUGINS=grafana-mqtt-datasource
+      - GF_INSTALL_PLUGINS=mqtt
     volumes:
       - ./grafana:/etc/grafana/provisioning/datasources
 
