@@ -198,7 +198,7 @@ datasources:
 - name: MQTT
   type: grafana-mqtt-datasource
   access: proxy
-  url: tcp://mosquitto:1883
+  url: mqtt://bifrost.local:1883
   jsonData:
     tlsSkipVerify: true
     timeField: time
