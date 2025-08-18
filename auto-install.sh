@@ -67,7 +67,7 @@ fi
 # --- Estrutura de pastas ---
 BASE_DIR="$HOME/bifrost"
 DOCKER_DIR="$BASE_DIR/docker"
-sudo mkdir -p "$DOCKER_DIR/mqtt-broker" "$DOCKER_DIR/mqtt-explorer"
+mkdir -p "$DOCKER_DIR/mqtt-broker" "$DOCKER_DIR/mqtt-explorer"
 
 # --- Clonando repositórios ---
 cd "$BASE_DIR"
@@ -125,8 +125,7 @@ EOF
 else
     ok "Configuração do MQTT Explorer já existe."
 fi
-
-# --- Monitoring (Grafana, InfluxDB) ---
+# --- Monitoring (Grafana, Prometheus, Node Exporter) ---
 MONITORING_DIR="$DOCKER_DIR/monitoring"
 GRAFANA_DIR="$MONITORING_DIR/grafana"
 PROMETHEUS_DIR="$MONITORING_DIR/prometheus"
@@ -134,22 +133,26 @@ PROMETHEUS_DIR="$MONITORING_DIR/prometheus"
 if [ ! -f "$MONITORING_DIR/compose.yaml" ]; then
     info "Criando estrutura de monitoring..."
     mkdir -p "$GRAFANA_DIR" "$PROMETHEUS_DIR"
+
     # compose.yaml
     cat <<'EOF' > "$MONITORING_DIR/compose.yaml"
 services:
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    ports:
-      - 3000:3000
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
     restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=grafana
-      - GF_INSTALL_PLUGINS=grafana-mqtt-datasource
     volumes:
-      - ./grafana:/etc/grafana/provisioning/datasources
-      
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - 9100:9100
+
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -163,6 +166,19 @@ services:
       - prom_data:/prometheus
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
+
 volumes:
   prom_data:
 EOF
@@ -172,23 +188,15 @@ EOF
 apiVersion: 1
 
 datasources:
-  - name: MQTT
-    type: grafana-mqtt-datasource
-    access: proxy
-    isDefault: true
-    jsonData:
-      broker: "mqtt://mosquitto:1883"
-      username: ""
-      password: ""
-  - name: Prometheus
-    type: prometheus
-    url: http://prometheus:9090 
-    isDefault: true
-    access: proxy
-    editable: true
+- name: Prometheus
+  type: prometheus
+  url: http://prometheus:9090 
+  isDefault: true
+  access: proxy
+  editable: true
 EOF
 
-# prometheus.yaml
+    # prometheus.yaml
     cat <<'EOF' > "$PROMETHEUS_DIR/prometheus.yaml"
 global:
   scrape_interval: 15s
