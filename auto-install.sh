@@ -125,6 +125,7 @@ EOF
 else
     ok "Configuração do MQTT Explorer já existe."
 fi
+
 # --- Monitoring (Grafana, InfluxDB) ---
 MONITORING_DIR="$DOCKER_DIR/monitoring"
 GRAFANA_DIR="$MONITORING_DIR/grafana"
@@ -214,6 +215,7 @@ scrape_configs:
     static_configs:
     - targets:
       - host.docker.internal:9100
+EOF
 else
     ok "Configuração de monitoring já existe."
 fi
