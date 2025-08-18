@@ -194,6 +194,13 @@ datasources:
   isDefault: true
   access: proxy
   editable: true
+- name: MQTT
+  type: grafana-mqtt-datasource
+  access: proxy
+  url: tcp://mosquitto:1883
+  jsonData:
+    tlsSkipVerify: true
+    timeField: time
 EOF
 
     # prometheus.yaml
