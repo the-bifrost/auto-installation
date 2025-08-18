@@ -65,7 +65,7 @@ else
 fi
 
 # --- Estrutura de pastas ---
-BASE_DIR="$HOME/bifrost"
+BASE_DIR="$USER/bifrost"
 DOCKER_DIR="$BASE_DIR/docker"
 mkdir -p "$DOCKER_DIR/mqtt-broker" "$DOCKER_DIR/mqtt-explorer"
 
