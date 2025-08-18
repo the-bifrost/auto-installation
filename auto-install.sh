@@ -303,7 +303,7 @@ After=network.target mosquitto.service
 [Service]
 User=$USER
 WorkingDirectory=$MONITORING_DIR
-ExecStart=/usr/bin/python3 monitoring.py
+ExecStart=python3 monitoring.py
 Restart=always
 
 [Install]
